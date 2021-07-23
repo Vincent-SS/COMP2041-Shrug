@@ -1,0 +1,142 @@
+#!/bin/dash
+
+force=0
+cached=0
+files=""
+for cmd in $@
+do
+	#echo $cmd
+	if test $cmd = "--force"
+	then
+		force=1
+	elif test $cmd = "--cached"
+	then
+		cached=1
+	else
+		files="$files $cmd"
+	fi
+done
+
+#echo "force is $force"
+#echo "cached is $cached"
+#echo "files is $files"
+
+commitnum=0
+while ( true )
+do
+	if [ -e ".shrug/commit.$commitnum" ]
+	then
+		commitnum=$((commitnum+1))	
+	else
+		break;
+	fi
+done
+
+if [ $commitnum = 0 ]
+then
+	echo "shrug-rm: error: your repository does not have any commits yet"
+	exit 1
+fi
+
+for file in $files
+do
+	#echo "$file"
+	if [ ! -e .shrug/index/"$file" ]
+	then
+		echo "shrug-rm: error: '$file' is not in the shrug repository"
+		exit 1
+	fi
+done
+p=$(($commitnum-1))
+for file in $files
+do
+	# force to delete the files
+	if [ "$force" = 1 ] 
+	then
+		# force and cached
+		if [ "$cached" = 1 ]
+		then
+			rm .shrug/index/$file
+		# force and not cached
+		else
+			rm "$file"
+			rm .shrug/index/$file
+		fi	
+	# not force to delete the files
+	else
+		# not force and cached
+		if [ "$cached" = 1 ]
+		then
+			diff=$(diff $file .shrug/index/$file)
+			# index and curr are same
+			if [ "$diff" = ""  ]
+			then
+				rm .shrug/index/$file
+			# index and curr not same
+			else
+				# latest commit dir contains file
+				if [ -e .shrug/commit.$p/$file ]
+				then
+					diff2=$(diff .shrug/index/$file .shrug/commit.$p/$file)
+					# index and commit are same
+					if [ "$diff2" = "" ]
+					then
+						rm .shrug/index/$file
+					# index and commit not same
+					else
+						echo "shrug-rm: error: '$file' in index is different to both working file and repository"
+						exit 1
+					fi
+				# latest commit dir no such file
+				else
+					echo "shrug-rm: error: '$file' in index is different to both working file and repository"
+					exit 1
+				fi
+			fi
+		# not force and not cached
+		else
+			diff=$(diff $file .shrug/index/$file)
+			# index and curr are same
+			if [ "$diff" = ""  ]
+			then
+				# latest commit dir contains file
+				if [ -e .shrug/commit.$p/$file ]
+				then
+					diff2=$(diff .shrug/index/$file .shrug/commit.$p/$file)
+					# index and commit are same
+					if [ "$diff2" = "" ]
+					then
+						rm $file
+						rm .shrug/index/$file
+					# index and commit not same
+					else
+						echo "shrug-rm: error: '$file' has changes staged in the index"
+						exit 1
+					fi
+				# latest commit dir no such file
+				else
+					echo "shrug-rm: error: '$file' has changes staged in the index"
+					exit 1
+				fi
+			# index and curr not same
+			else
+				diff=$(diff .shrug/index/$file .shrug/commit.$p/$file)
+				# index and commit same
+				if [ "$diff" = "" ]
+				then
+					echo "shrug-rm: error: '$file' in repository is different to working file"
+					exit 1
+				# index and commit not same
+				else
+					echo "shrug-rm: error: '$file' in index is different to both working file and repository"
+				fi
+				
+			fi
+		fi
+	fi
+done
+
+
+
+
+

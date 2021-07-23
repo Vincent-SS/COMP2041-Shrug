@@ -1,0 +1,40 @@
+#!/bin/dash
+
+# Check valid user input
+if [ $# -eq 0 ]
+then
+	echo "usage: shrug-add <filenames>"
+	exit 1
+fi
+
+
+
+if [ -d ".shrug" ]
+then
+	for f in $@
+	do
+		if [ -e $f ]
+		then
+			# Check filename validation
+			# if expr $f : egrep -qv '^[a-zA-Z0-9]{1}[a-zA-Z0-9.-_]*$' 2>/dev/null;
+			if expr "$f" : '^[a-zA-Z0-9][a-zA-Z0-9._\-]*$' 1>/dev/null;
+			then
+				cp $f .shrug/index/
+			else
+				echo "shrug-add: error: invalid filename '$f'"
+			fi
+		else
+			if [ -e .shrug/index/$f ]
+			then
+				rm .shrug/index/$f
+			else
+				echo "shrug-add: error: can not open '$f'"
+			fi
+		fi
+	done
+else
+	echo "shrug-add: error: no .shrug directory containing shrug repository exists"
+	exit 1
+fi
+
+exit 0

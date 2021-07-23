@@ -1,0 +1,168 @@
+#!/bin/dash
+if [ $# -ne 2 ]
+then
+	if [ $# -ne 3 ]
+	then
+		echo "usage: shrug-commit [-a] -m commit-message"
+		exit 1
+	fi
+fi
+
+# handle -a option
+if [ $# -eq 3 ]
+then
+	for x in .shrug/index/*
+	do
+		xname=$(echo $x | cut -d '/' -f3)
+		if [ -e $xname ]
+		then
+			cp "$xname" ".shrug/index/" 
+		fi
+	done
+fi
+
+
+commitnum=0
+while ( true )
+do
+	if [ -e ".shrug/commit.$commitnum" ]
+	then
+		commitnum=$((commitnum+1))	
+	else
+		break;
+	fi
+done
+
+commitfilename="commit.$commitnum"
+#echo "commit should be $commitfilename"
+#mkdir .shrug/$commitfilename
+
+#now grab previous version
+p=$(($commitnum-1))
+previouscommit=".shrug/commit.$p"
+#echo "$previouscommit"
+same=0
+
+for newfile in .shrug/index/*
+do	
+	fn=$(echo $newfile | cut -d '/' -f3)
+	oldcomit_path="$previouscommit/$fn"
+	#echo "$oldcomit_path"
+	if [ -e "$oldcomit_path" ]
+	then
+		#echo "$oldcomit_path exists"
+		newfile_content=$(cat $newfile)
+		#echo "$newfile_content"
+		old_content=$(cat $oldcomit_path)
+		#echo "$old_content"
+		if [ ! "$newfile_content" = "$old_content" ]
+		then
+			same=1
+			break
+		fi
+	else
+		same=1
+		#echo "$oldcomit_path not exists"
+	fi
+done
+
+# get number of files in commit
+#echo "p is $p"
+
+
+
+if test "$p" -ge 0
+then
+	if [ -z "$(ls -A -- ".shrug/commit.$p/")" ]
+	then
+		commit_file_num=0
+	else
+		commit_file_num=$(ls .shrug/commit.$p/* | wc -w)
+	fi
+	#echo "hererere $commit_file_num"
+	#echo "commit file num is $commit_file_num"
+	if [ -z "$(ls -A -- ".shrug/index/")" ]
+	then
+		index_file_num=0
+	else
+		index_file_num=$(ls -a .shrug/index/* | wc -w)
+	fi
+	
+	#echo "commit file num is sdf $commit_file_num"
+	#echo "index file num is $index_file_num"
+	if test $index_file_num -ne $commit_file_num
+	then
+		# index is empty
+		if test "$index_file_num" -eq 0
+		then
+			mkdir .shrug/$commitfilename
+			echo "Committed as commit $commitnum"
+			# save the commit into log
+			if [ -e .shrug/commit_log.txt ];
+			then
+				#echo $commitnum $2 >> cat - .shrug/commit_log.txt
+				#tac .shrug/commit_log.txt > .shrug/a.txt
+				#rm .shrug/commit_log.txt
+				#cat .shrug/a.txt >> .shrug/commit_log.txt
+				#rm .shrug/a.txt
+				sed -i "1i$commitnum $2" ".shrug/commit_log.txt"
+			else
+				echo $commitnum $2 > .shrug/commit_log.txt
+			fi
+		else
+			mkdir .shrug/$commitfilename
+			for f in .shrug/index/*
+			do
+				cp $f .shrug/$commitfilename
+			done
+			echo "Committed as commit $commitnum"
+	
+			# save the commit into log
+			if [ -e .shrug/commit_log.txt ];
+			then
+				#echo $commitnum $2 >> cat - .shrug/commit_log.txt
+				#tac .shrug/commit_log.txt > .shrug/a.txt
+				#rm .shrug/commit_log.txt
+				#cat .shrug/a.txt >> .shrug/commit_log.txt
+				#rm .shrug/a.txt
+				sed -i "1i$commitnum $2" ".shrug/commit_log.txt"
+			else
+				echo $commitnum $2 > .shrug/commit_log.txt
+			fi
+		fi
+		exit 0
+	fi
+fi
+
+
+
+#echo $same
+
+if [ $same = 0 ]
+then
+	echo "nothing to commit"
+else
+	#echo "need to commit"
+	mkdir .shrug/$commitfilename
+	for f in .shrug/index/*
+	do
+		cp $f .shrug/$commitfilename
+	done
+	echo "Committed as commit $commitnum"
+	
+	# save the commit into log
+	if [ -e .shrug/commit_log.txt ];
+	then
+		#echo $commitnum $2 >> cat - .shrug/commit_log.txt
+		#tac .shrug/commit_log.txt > .shrug/a.txt
+		#rm .shrug/commit_log.txt
+		#cat .shrug/a.txt >> .shrug/commit_log.txt
+		#rm .shrug/a.txt
+		sed -i "1i$commitnum $2" ".shrug/commit_log.txt"
+	else
+		echo $commitnum $2 > .shrug/commit_log.txt
+	fi
+fi
+
+exit 0
+

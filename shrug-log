@@ -1,0 +1,8 @@
+#!/bin/dash
+
+if [ -e ".shrug/commit_log.txt" ]
+then
+	cat .shrug/commit_log.txt
+else
+	echo "shrug-log: error: your repository does not have any commits yet"
+fi

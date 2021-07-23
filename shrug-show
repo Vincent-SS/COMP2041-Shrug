@@ -1,0 +1,37 @@
+#!/bin/dash
+
+if [ $# -eq 1 ]
+then
+	commitnum=$(echo $1 | cut -d ':' -f1)
+	f=$(echo $1 | cut -d ':' -f2)
+	#echo "$commitnum"
+	#echo "$f"
+	if test ! -z "$commitnum";
+	then
+		if [ -d .shrug/commit.$commitnum ]
+		then
+			if [ -e .shrug/commit.$commitnum/$f ]
+			then
+				cat .shrug/commit.$commitnum/$f
+			else 
+				echo "shrug-show: error: '$f' not found in commit $commitnum"
+				exit 1
+			fi
+		else
+			echo "shrug-show: error: unknown commit '$commitnum'"
+			exit 1
+		fi
+	else
+		if [ -e .shrug/index/$f ]
+		then
+			cat .shrug/index/$f
+		else
+			echo "shrug-show: error: '$f' not found in index"
+			exit 1
+		fi
+	fi
+	exit 0
+else
+	echo "usage: shrug-show <commit>:<filename>"
+	exit 1
+fi

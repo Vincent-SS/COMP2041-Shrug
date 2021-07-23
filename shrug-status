@@ -1,0 +1,99 @@
+#!/bin/dash
+
+mkdir .statustemp
+mkdir .statustemp/index
+mkdir .statustemp/commit
+
+index_nofile=0
+commit_nofile=0
+
+# copy current files to .statustemp
+if [ ! -z "$(ls -A -- "./")" ]
+then
+	for file in ./*
+	do
+		#echo $file
+		if [ $file != '^.' ]
+		then
+			cp $file .statustemp
+		fi
+	done
+fi
+
+# copy index to .statustemp/index
+if [ -z "$(ls -A -- ".shrug/index/")" ]
+then
+	index_nofile=1
+else
+	for file in .shrug/index/*
+	do
+		cp $file .statustemp/index
+	done
+fi
+
+# copy commit to .statustemp/commit
+commitnum=0
+while ( true )
+do
+	if [ -e ".shrug/commit.$commitnum" ]
+	then
+		commitnum=$((commitnum+1))	
+	else
+		break;
+	fi
+done
+p=$(($commitnum-1))
+
+if [ -z "$(ls -A -- ".shrug/commit.$p/")" ]
+then
+	commit_nofile=1
+else
+	for file in .shrug/commit.$p/*
+	do
+		cp $file .statustemp/commit
+	done
+fi
+
+#Sort files
+sortfile=$(ls .statustemp | sort )
+#Now process files
+for f in $sortfile
+do
+	#echo $f
+	if [ -e $f ] && [ ! -e .statustemp/index/$f ]
+	then
+		echo "$f - untracked"
+	elif [ -e .statustemp/index/$f ] && [ ! -e .statustemp/commit/$f ] && [ -e $f ]
+	then
+		echo "$f - added to index, file changed"
+	elif [ -e .statustemp/index/$f ] && [ ! -e .statustemp/commit/$f ] && [ ! -e $f ]
+	then
+		echo "$f - added to index, file deleted"
+	elif [ ! -e .statustemp/index/$f ] && [ ! -e $f ] && [ -e .statustemp/commit/$f ]
+	then
+		echo "$f - deleted"
+	elif [ -e .statustemp/index/$f ] && [ ! -e $f ] && [ -e .statustemp/commit/$f ]
+	then
+		echo "$f - file deleted"
+	elif [ -e .statustemp/index/$f ] && [ -e $f ] && [ -e .statustemp/commit/$f ]
+	then
+		diff_commit_index=$(diff .statustemp/commit/$f .statustemp/index/$f)
+		diff_commit_curr=$(diff .statustemp/commit/$f $f)
+		diff_index_curr=$(diff .statustemp/index/$f $f)
+		if [ "$diff_commit_index" = "" ] && [ "$diff_commit_curr" = "" ] && [ "$diff_index_curr" = "" ]
+		then
+			echo "$f - same as repo"
+		elif [ "$diff_commit_index" != "" ] && [ "$diff_commit_curr" != "" ] && [ "$diff_index_curr" != "" ]
+		then
+			echo "$f - file changed, different changes staged for commit"
+		elif [ "$diff_index_curr" = "" ] && [ "$diff_commit_index" = "" ]
+		then
+			
+			echo "$f - file changed, changes not staged for commit"
+		else
+			echo "$f - file changed, changes staged for commit"
+		fi
+	fi
+done
+
+rm -r .statustemp
